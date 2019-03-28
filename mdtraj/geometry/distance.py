@@ -26,110 +26,10 @@ from __future__ import print_function, division
 import numpy as np
 from mdtraj.utils import ensure_type
 from mdtraj.utils.six.moves import range
-from . import _geometry
 
 
-__all__ = ['compute_distances', 'compute_displacements',
-           'compute_center_of_mass', 'find_closest_contact']
+__all__ = ['compute_center_of_mass']
 
-
-
-def compute_distances(traj, atom_pairs, periodic=True, opt=True):
-    """Compute the distances between pairs of atoms in each frame.
-
-    Parameters
-    ----------
-    traj : Trajectory
-        An mtraj trajectory.
-    atom_pairs : np.ndarray, shape=(num_pairs, 2), dtype=int
-        Each row gives the indices of two atoms involved in the interaction.
-    periodic : bool, default=True
-        If `periodic` is True and the trajectory contains unitcell
-        information, we will compute distances under the minimum image
-        convention.
-    opt : bool, default=True
-        Use an optimized native library to calculate distances. Our optimized
-        SSE minimum image convention calculation implementation is over 1000x
-        faster than the naive numpy implementation.
-
-    Returns
-    -------
-    distances : np.ndarray, shape=(n_frames, num_pairs), dtype=float
-        The distance, in each frame, between each pair of atoms.
-    """
-    xyz = ensure_type(traj.xyz, dtype=np.float32, ndim=3, name='traj.xyz', shape=(None, None, 3), warn_on_cast=False)
-    pairs = ensure_type(atom_pairs, dtype=np.int32, ndim=2, name='atom_pairs', shape=(None, 2), warn_on_cast=False)
-    if not np.all(np.logical_and(pairs < traj.n_atoms, pairs >= 0)):
-        raise ValueError('atom_pairs must be between 0 and %d' % traj.n_atoms)
-
-    if len(pairs) == 0:
-        return np.zeros((len(xyz), 0), dtype=np.float32)
-
-    if periodic and traj._have_unitcell:
-        box = ensure_type(traj.unitcell_vectors, dtype=np.float32, ndim=3, name='unitcell_vectors', shape=(len(xyz), 3, 3),
-                          warn_on_cast=False)
-        orthogonal = np.allclose(traj.unitcell_angles, 90)
-        if opt:
-            out = np.empty((xyz.shape[0], pairs.shape[0]), dtype=np.float32)
-            _geometry._dist_mic(xyz, pairs, box.transpose(0, 2, 1).copy(), out, orthogonal)
-            return out
-        else:
-            return _distance_mic(xyz, pairs, box.transpose(0, 2, 1), orthogonal)
-
-    # either there are no unitcell vectors or they dont want to use them
-    if opt:
-        out = np.empty((xyz.shape[0], pairs.shape[0]), dtype=np.float32)
-        _geometry._dist(xyz, pairs, out)
-        return out
-    else:
-        return _distance(xyz, pairs)
-
-
-def compute_displacements(traj, atom_pairs, periodic=True, opt=True):
-    """Compute the displacement vector between pairs of atoms in each frame of a trajectory.
-
-    Parameters
-    ----------
-    traj : Trajectory
-        Trajectory to compute distances in
-    atom_pairs : np.ndarray, shape[num_pairs, 2], dtype=int
-        Each row gives the indices of two atoms.
-    periodic : bool, default=True
-        If `periodic` is True and the trajectory contains unitcell
-        information, we will compute distances under the minimum image
-        convention.
-    opt : bool, default=True
-        Use an optimized native library to calculate distances. Our
-        optimized minimum image convention calculation implementation is
-        over 1000x faster than the naive numpy implementation.
-
-    Returns
-    -------
-    displacements : np.ndarray, shape=[n_frames, n_pairs, 3], dtype=float32
-         The displacememt vector, in each frame, between each pair of atoms.
-    """
-    xyz = ensure_type(traj.xyz, dtype=np.float32, ndim=3, name='traj.xyz', shape=(None, None, 3), warn_on_cast=False)
-    pairs = ensure_type(np.asarray(atom_pairs), dtype=np.int32, ndim=2, name='atom_pairs', shape=(None, 2), warn_on_cast=False)
-    if not np.all(np.logical_and(pairs < traj.n_atoms, pairs >= 0)):
-        raise ValueError('atom_pairs must be between 0 and %d' % traj.n_atoms)
-
-    if periodic and traj._have_unitcell:
-        box = ensure_type(traj.unitcell_vectors, dtype=np.float32, ndim=3, name='unitcell_vectors', shape=(len(xyz), 3, 3),
-                          warn_on_cast=False)
-        orthogonal = np.allclose(traj.unitcell_angles, 90)
-        if opt:
-            out = np.empty((xyz.shape[0], pairs.shape[0], 3), dtype=np.float32)
-            _geometry._dist_mic_displacement(xyz, pairs, box.transpose(0, 2, 1).copy(), out, orthogonal)
-            return out
-        else:
-            return _displacement_mic(xyz, pairs, box.transpose(0, 2, 1), orthogonal)
-
-    # either there are no unitcell vectors or they dont want to use them
-    if opt:
-        out = np.empty((xyz.shape[0], pairs.shape[0], 3), dtype=np.float32)
-        _geometry._dist_displacement(xyz, pairs, out)
-        return out
-    return _displacement(xyz, pairs)
 
 
 def compute_center_of_mass(traj):
@@ -153,43 +53,6 @@ def compute_center_of_mass(traj):
     for i, x in enumerate(traj.xyz):
         com[i, :] = x.astype('float64').T.dot(masses)
     return com
-
-
-def find_closest_contact(traj, group1, group2, frame=0, periodic=True):
-    """Find the closest contact between two groups of atoms.
-
-    Given a frame of a Trajectory and two groups of atoms, identify the pair of
-    atoms (one from each group) that form the closest contact between the two groups.
-
-    Parameters
-    ----------
-    traj : Trajectory
-        An mtraj trajectory.
-    group1 : np.ndarray, shape=(num_atoms), dtype=int
-        The indices of atoms in the first group.
-    group2 : np.ndarray, shape=(num_atoms), dtype=int
-        The indices of atoms in the second group.
-    frame : int, default=0
-        The frame of the Trajectory to take positions from
-    periodic : bool, default=True
-        If `periodic` is True and the trajectory contains unitcell
-        information, we will compute distances under the minimum image
-        convention.
-
-    Returns
-    -------
-    result : tuple (int, int, float)
-         The indices of the two atoms forming the closest contact, and the distance between them.
-    """
-    xyz = ensure_type(traj.xyz, dtype=np.float32, ndim=3, name='traj.xyz', shape=(None, None, 3), warn_on_cast=False)[frame]
-    atoms1 = ensure_type(group1, dtype=np.int32, ndim=1, name='group1', warn_on_cast=False)
-    atoms2 = ensure_type(group2, dtype=np.int32, ndim=1, name='group2', warn_on_cast=False)
-    if periodic and traj._have_unitcell:
-        box = ensure_type(traj.unitcell_vectors, dtype=np.float32, ndim=3, name='unitcell_vectors', shape=(len(traj.xyz), 3, 3),
-                          warn_on_cast=False)[frame]
-    else:
-        box = None
-    return _geometry._find_closest_contact(xyz, atoms1, atoms2, box)
 
 
 ##############################################################################

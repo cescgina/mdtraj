@@ -63,10 +63,7 @@ from mdtraj.utils import (ensure_type, in_units_of, lengths_and_angles_to_box_ve
                           deprecated)
 from mdtraj.utils.six.moves import xrange
 from mdtraj.utils.six import PY3, string_types
-from mdtraj import _rmsd
 from mdtraj import FormatRegistry
-from mdtraj.geometry import distance
-from mdtraj.geometry import _geometry
 
 ##############################################################################
 # Globals

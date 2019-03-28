@@ -167,9 +167,11 @@ def format_extensions():
 
 
 def rmsd_extensions():
-    compiler_args = (compiler.compiler_args_openmp + compiler.compiler_args_sse2 +
-                     compiler.compiler_args_sse3 + compiler.compiler_args_opt +
-                     compiler.compiler_args_warn)
+    # compiler_args = (compiler.compiler_args_openmp + compiler.compiler_args_sse2 +
+    #                  compiler.compiler_args_sse3 + compiler.compiler_args_opt +
+    #                  compiler.compiler_args_warn)
+    compiler_args = (compiler.compiler_args_openmp + compiler.compiler_args_opt +
+                     compiler.compiler_args_warn + ["-DNO_WARN_X86_INTRINSICS"])
     compiler_libraries = compiler.compiler_libraries_openmp
 
     libtheobald = StaticLibrary(
@@ -182,9 +184,10 @@ def rmsd_extensions():
         export_include=['mdtraj/rmsd/include/theobald_rmsd.h',
                         'mdtraj/rmsd/include/center.h'],
         # don't enable OpenMP
-        extra_compile_args=(compiler.compiler_args_sse2 +
-                            compiler.compiler_args_sse3 +
-                            compiler.compiler_args_opt))
+        # extra_compile_args=(compiler.compiler_args_sse2 +
+        #                     compiler.compiler_args_sse3 +
+        #                     compiler.compiler_args_opt))
+        extra_compile_args=(compiler.compiler_args_opt + ["-DNO_WARN_X86_INTRINSICS"]))
 
     rmsd = Extension('mdtraj._rmsd',
                      sources=[
@@ -214,10 +217,13 @@ def rmsd_extensions():
 
 def geometry_extensions():
     compiler.initialize()
+    # compiler_args = (
+    #     compiler.compiler_args_openmp +
+    #     compiler.compiler_args_sse2 + compiler.compiler_args_sse3 +
+    #     compiler.compiler_args_opt + compiler.compiler_args_warn)
     compiler_args = (
         compiler.compiler_args_openmp +
-        compiler.compiler_args_sse2 + compiler.compiler_args_sse3 +
-        compiler.compiler_args_opt + compiler.compiler_args_warn)
+        compiler.compiler_args_opt + compiler.compiler_args_warn + ["-DNO_WARN_X86_INTRINSICS"])
     define_macros = None
     compiler_libraries = compiler.compiler_libraries_openmp + extra_cpp_libraries
 
@@ -264,8 +270,8 @@ def geometry_extensions():
         ]
 
 extensions = format_extensions()
-extensions.extend(rmsd_extensions())
-extensions.extend(geometry_extensions())
+#extensions.extend(rmsd_extensions())
+# extensions.extend(geometry_extensions())
 
 write_version_py(VERSION, ISRELEASED, 'mdtraj/version.py')
 
