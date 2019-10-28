@@ -29,6 +29,9 @@ from mdtraj.utils.six.moves import range
 
 
 __all__ = ['compute_center_of_mass']
+# __all__ = ['compute_distances', 'compute_displacements',
+#            'compute_center_of_mass', 'compute_center_of_geometry',
+#            'find_closest_contact']
 
 
 
@@ -55,6 +58,68 @@ def compute_center_of_mass(traj):
     return com
 
 
+<<<<<<< HEAD
+=======
+def compute_center_of_geometry(traj):
+    """Compute the center of geometry for each frame.
+
+    Parameters
+    ----------
+    traj : Trajectory
+        Trajectory to compute center of geometry for
+
+    Returns
+    -------
+    com : np.ndarray, shape=(n_frames, 3)
+         Coordinates of the center of geometry for each frame
+
+    """
+
+    centers = np.zeros((traj.n_frames, 3))
+
+    for i, x in enumerate(traj.xyz):
+        centers[i, :] = x.astype('float64').T.mean(axis=1)
+    return centers
+
+
+def find_closest_contact(traj, group1, group2, frame=0, periodic=True):
+    """Find the closest contact between two groups of atoms.
+
+    Given a frame of a Trajectory and two groups of atoms, identify the pair of
+    atoms (one from each group) that form the closest contact between the two groups.
+
+    Parameters
+    ----------
+    traj : Trajectory
+        An mtraj trajectory.
+    group1 : np.ndarray, shape=(num_atoms), dtype=int
+        The indices of atoms in the first group.
+    group2 : np.ndarray, shape=(num_atoms), dtype=int
+        The indices of atoms in the second group.
+    frame : int, default=0
+        The frame of the Trajectory to take positions from
+    periodic : bool, default=True
+        If `periodic` is True and the trajectory contains unitcell
+        information, we will compute distances under the minimum image
+        convention.
+
+    Returns
+    -------
+    result : tuple (int, int, float)
+         The indices of the two atoms forming the closest contact, and the distance between them.
+    """
+    xyz = ensure_type(traj.xyz, dtype=np.float32, ndim=3, name='traj.xyz', shape=(None, None, 3), warn_on_cast=False)[frame]
+    atoms1 = ensure_type(group1, dtype=np.int32, ndim=1, name='group1', warn_on_cast=False)
+    atoms2 = ensure_type(group2, dtype=np.int32, ndim=1, name='group2', warn_on_cast=False)
+    if periodic and traj._have_unitcell:
+        box = ensure_type(traj.unitcell_vectors, dtype=np.float32, ndim=3, name='unitcell_vectors', shape=(len(traj.xyz), 3, 3),
+                          warn_on_cast=False)[frame]
+    else:
+        box = None
+    return _geometry._find_closest_contact(xyz, atoms1, atoms2, box)
+
+
+>>>>>>> master
 ##############################################################################
 # pure python implementation of the core routines
 ##############################################################################

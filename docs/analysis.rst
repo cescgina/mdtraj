@@ -19,6 +19,7 @@ Root-mean-square deviation (RMSD)
     :toctree: api/generated/
 
     rmsd
+    rmsf
     lprmsd
     Trajectory.superpose
 
@@ -39,6 +40,14 @@ Secondary Structure
     :toctree: api/generated/
 
     compute_dssp
+
+
+Shape Metrics
+-------------------
+.. autosummary::
+    :toctree: api/generated/
+
+    compute_gyration_tensor
 
 
 Surface Area, Radius of Gyration and Inertia

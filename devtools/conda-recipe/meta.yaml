@@ -7,30 +7,32 @@ source:
 
 build:
   number: {{ GIT_DESCRIBE_NUMBER }}
-  script: python setup.py install --single-version-externally-managed --record record.txt
   entry_points:
     - mdconvert = mdtraj.scripts.mdconvert:entry_point
     - mdinspect = mdtraj.scripts.mdinspect:entry_point
 
 requirements:
   build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
     - python
     - setuptools
     - cython
     - numpy
     - zlib
     - msinttypes  # [win and py27]
+    - pip >=19
 
   run:
     - python
     - setuptools
     - numpy
     - scipy
-    - pandas
-    - pytables
     # Fix pytables on windows. See https://github.com/conda-forge/pytables-feedstock/issues/31#issuecomment-410695814
     - snappy  # [win]
-    
+    - pyparsing
+    - astor
 
 test:
   requires:
@@ -39,13 +41,18 @@ test:
     - matplotlib
     - openmm >=7.1  # [not (win32 or (win and py2k) or py37)]
     - shiftx2  # [linux and py2k]
-    # do not install cpptraj on osx, because the current version from omnia is linked against an old runtime.
-    # and not avail on win
-    - cpptraj  # [not (osx or win32) ]
+    # 1. do not install cpptraj on osx, because the current version from omnia is linked against an old runtime.
+    #    and not avail on win
+    # 2. do not install cpptraj on linux either, until https://github.com/omnia-md/conda-recipes/issues/945 is fixed
+    #- cpptraj  # [not (osx or win32 or win64)]
     - nbformat
     - ipykernel
     - scikit-learn
-    - pytest-ignore-flaky
+    - pytest-ignore-flaky =1
+    - pandas
+    - pytables
+    - psutil
+    - conda-verify
 
   source_files:
     - examples/*
@@ -56,7 +63,7 @@ test:
     - mdtraj
 
   commands:
-    - pytest  --ignore-flaky
+    - pytest -v --ignore-flaky
 
 about:
   home: https://github.com/mdtraj/mdtraj
